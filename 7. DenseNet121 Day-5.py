@@ -59,7 +59,7 @@ test_generator = val_test_datagen.flow_from_directory(
 base_model = DenseNet121(include_top=False, weights='imagenet', input_shape=input_shape)
 
 # Fine-tuning
-for layer in base_model.layers[-20:]:
+for layer in base_model.layers[:-20]:
     layer.trainable = False
 
 # Add custom layers on top
