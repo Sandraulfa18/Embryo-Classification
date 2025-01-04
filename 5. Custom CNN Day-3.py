@@ -4,7 +4,7 @@ from tensorflow.keras.layers import (
     Input, Conv2D, MaxPooling2D, BatchNormalization, GlobalAveragePooling2D, Dropout
 )
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
+from tensorflow.keras.callbacks import ModelCheckpoint
 import pandas as pd
 
 # Path to dataset folders
@@ -107,7 +107,7 @@ model.summary()
 
 # Callbacks
 checkpoint_callback = ModelCheckpoint('/content/drive/MyDrive/Dataset Hari ke-3/100custom_cnn_with_256_model.keras', save_best_only=True)
-# reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-6, verbose=1)
+
 
 # Train the model
 history = model.fit(
