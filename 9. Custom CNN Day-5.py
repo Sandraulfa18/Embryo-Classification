@@ -118,7 +118,7 @@ history = model.fit(
 )
 
 # Evaluate on test set
-test_loss, test_accuracy, test_top_k_accuracy = model.evaluate(test_generator)
+test_loss, test_accuracy = model.evaluate(test_generator)
 print(f"Test Loss: {test_loss:.4f}")
 print(f"Test Accuracy: {test_accuracy:.4f}")
 
