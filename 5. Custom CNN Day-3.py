@@ -99,7 +99,7 @@ model = custom_cnn_with_256(input_shape)
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
     loss='sparse_categorical_crossentropy',
-    metrics=['accuracy', 'sparse_top_k_categorical_accuracy']
+    metrics=['accuracy']
 )
 
 # Display model summary
@@ -121,7 +121,6 @@ history = model.fit(
 test_loss, test_accuracy, test_top_k_accuracy = model.evaluate(test_generator)
 print(f"Test Loss: {test_loss:.4f}")
 print(f"Test Accuracy: {test_accuracy:.4f}")
-print(f"Test Top-K Accuracy: {test_top_k_accuracy:.4f}")
 
 # Save metrics to Excel
 data = {
@@ -130,8 +129,7 @@ data = {
     'Validation Accuracy': history.history['val_accuracy'],
     'Training Loss': history.history['loss'],
     'Validation Loss': history.history['val_loss'],
-    # 'Training Top-K Accuracy': history.history['sparse_top_k_categorical_accuracy'],
-    # 'Validation Top-K Accuracy': history.history['val_sparse_top_k_categorical_accuracy']
+
 }
 
 history_df = pd.DataFrame(data)
