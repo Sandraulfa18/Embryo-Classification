@@ -4,21 +4,21 @@ from tensorflow.keras.applications import InceptionV3
 from tensorflow.keras.layers import GlobalAveragePooling2D, Dense, Dropout
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import ModelCheckpoint
-import matplotlib.pyplot as plt
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 import pandas as pd
+import matplotlib.pyplot as plt
 import numpy as np
 
-# Paths to dataset folders
-train_dir = "/content/drive/MyDrive/Dataset Hari ke - 5/Train"
-val_dir = "/content/drive/MyDrive/Dataset Hari ke - 5/Validation"
-test_dir = "/content/drive/MyDrive/Dataset Hari ke - 5/Test"
+# Path ke dataset
+train_dir = "/content/drive/MyDrive/11. New Data set/Dataset Hari ke - 5 new/Train"
+val_dir = "/content/drive/MyDrive/11. New Data set/Dataset Hari ke - 5 new/Validation"
+test_dir = "/content/drive/MyDrive/11. New Data set/Dataset Hari ke - 5 new/Test"
 
-# Image size and input shape for InceptionV3
-image_size = (299, 299)
-input_shape = (299, 299, 3)
+# Ukuran gambar dan input
+image_size = (224, 224)
+input_shape = (224, 224, 3)
 
-# Data augmentation and preprocessing
+# Augmentasi data untuk training
 train_datagen = ImageDataGenerator(
     rescale=1.0 / 255,
     rotation_range=20,
@@ -30,9 +30,10 @@ train_datagen = ImageDataGenerator(
     fill_mode='nearest'
 )
 
+# Preprocessing data validasi dan pengujian
 val_test_datagen = ImageDataGenerator(rescale=1.0 / 255)
 
-# Data generators
+# Data generator
 train_generator = train_datagen.flow_from_directory(
     train_dir,
     target_size=image_size,
@@ -55,14 +56,14 @@ test_generator = val_test_datagen.flow_from_directory(
     shuffle=False
 )
 
-# Define the model
+# Model arsitektur menggunakan InceptionV3
 base_model = InceptionV3(include_top=False, weights='imagenet', input_shape=input_shape)
 
-# Fine-tuning: Freeze all but the last few layers
+# Membekukan sebagian layer untuk fine-tuning
 for layer in base_model.layers[:-20]:
     layer.trainable = False
 
-# Add custom layers
+# Menambahkan layer kustom
 x = base_model.output
 x = GlobalAveragePooling2D()(x)
 x = Dense(512, activation='relu')(x)
@@ -73,30 +74,41 @@ predictions = Dense(3, activation='softmax')(x)
 
 model = Model(inputs=base_model.input, outputs=predictions)
 
-# Compile the model
+# Compile model
 model.compile(optimizer=Adam(learning_rate=0.0001),
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
-# Callback to save the best model
-checkpoint_callback = ModelCheckpoint('/content/drive/MyDrive/Dataset Hari ke - 5/inceptionv3_model.h5', save_best_only=True)
+# Callbacks
+checkpoint_callback = ModelCheckpoint(
+    '/content/drive/MyDrive/11. New Data set/Dataset Hari ke - 5 new/Rev2d5_inceptionv3_model.keras',
+    save_best_only=True
+)
 
-# Train the model
+early_stopping_callback = EarlyStopping(
+    monitor='val_loss',
+    patience=10,
+    min_delta=0.0001,
+    restore_best_weights=True,
+    verbose=1
+)
+
+# Melatih model
 history = model.fit(
     train_generator,
     steps_per_epoch=train_generator.samples // train_generator.batch_size,
     epochs=100,
     validation_data=val_generator,
     validation_steps=val_generator.samples // val_generator.batch_size,
-    callbacks=[checkpoint_callback]
+    callbacks=[checkpoint_callback, early_stopping_callback]
 )
 
-# Evaluate the model on the test dataset
+# Evaluasi pada dataset pengujian
 test_loss, test_accuracy = model.evaluate(test_generator)
 print(f"Test Loss: {test_loss:.4f}")
 print(f"Test Accuracy: {test_accuracy:.4f}")
 
-# Smooth curve function
+# Fungsi smoothing untuk hasil plot
 def smooth_curve(points, factor=0.8):
     smoothed_points = []
     for point in points:
@@ -107,30 +119,34 @@ def smooth_curve(points, factor=0.8):
             smoothed_points.append(point)
     return smoothed_points
 
-# Smoothed metrics
+# Smoothing metrics
 smoothed_training_accuracy = smooth_curve(history.history['accuracy'])
 smoothed_val_accuracy = smooth_curve(history.history['val_accuracy'])
 smoothed_training_loss = smooth_curve(history.history['loss'])
 smoothed_val_loss = smooth_curve(history.history['val_loss'])
 
-# Plotting function for individual metrics
-def plot_single_metric(metric, title, ylabel, color):
-    plt.figure(figsize=(6, 4))
-    plt.plot(metric, label=title, color=color)
-    plt.title(title)
-    plt.xlabel('Epoch')
-    plt.ylabel(ylabel)
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+# Plot hasil pelatihan
+plt.figure(figsize=(6, 4))
+plt.plot(smoothed_training_accuracy, label='Training Accuracy', color='blue')
+plt.plot(smoothed_val_accuracy, label='Validation Accuracy', color='cyan')
+plt.title('Accuracy per Epoch')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.grid(True)
+plt.show()
 
-# Plot metrics
-plot_single_metric(smoothed_training_accuracy, 'Training Accuracy', 'Accuracy', 'blue')
-plot_single_metric(smoothed_val_accuracy, 'Validation Accuracy', 'Accuracy', 'cyan')
-plot_single_metric(smoothed_training_loss, 'Training Loss', 'Loss', 'orange')
-plot_single_metric(smoothed_val_loss, 'Validation Loss', 'Loss', 'red')
+plt.figure(figsize=(6, 4))
+plt.plot(smoothed_training_loss, label='Training Loss', color='orange')
+plt.plot(smoothed_val_loss, label='Validation Loss', color='red')
+plt.title('Loss per Epoch')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+plt.grid(True)
+plt.show()
 
-# Save metrics to Excel
+# Simpan metrik ke file Excel
 data = {
     'Epoch': range(1, len(history.history['accuracy']) + 1),
     'Training Accuracy': history.history['accuracy'],
@@ -138,11 +154,10 @@ data = {
     'Training Loss': history.history['loss'],
     'Validation Loss': history.history['val_loss']
 }
-df = pd.DataFrame(data)
-df.to_excel('/content/drive/MyDrive/Dataset Hari ke - 5/inceptionv3_metrics.xlsx', index=False)
 
-# Print average training metrics
-avg_training_accuracy = np.mean(history.history['accuracy'])
-avg_training_loss = np.mean(history.history['loss'])
-print(f"Average Training Accuracy: {avg_training_accuracy:.4f}")
-print(f"Average Training Loss: {avg_training_loss:.4f}")
+df = pd.DataFrame(data)
+df.to_excel('/content/drive/MyDrive/11. New Data set/Dataset Hari ke - 5 new/Rev2d5_inceptionv3_metrics.xlsx', index=False)
+
+# Print rata-rata akurasi dan loss
+print(f"Rata-rata Training Accuracy: {np.mean(history.history['accuracy']):.4f}")
+print(f"Rata-rata Training Loss: {np.mean(history.history['loss']):.4f}")
