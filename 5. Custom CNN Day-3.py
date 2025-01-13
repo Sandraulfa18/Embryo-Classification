@@ -4,13 +4,13 @@ from tensorflow.keras.layers import (
     Input, Conv2D, MaxPooling2D, BatchNormalization, GlobalAveragePooling2D, Dropout
 )
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 import pandas as pd
 
 # Path to dataset folders
-train_dir = "/content/drive/MyDrive/Dataset Hari ke-3/Train"
-val_dir = "/content/drive/MyDrive/Dataset Hari ke-3/Validation"
-test_dir = "/content/drive/MyDrive/Dataset Hari ke-3/Test"
+train_dir = "/content/drive/MyDrive/11. New Data set/Dataset Hari ke-3/Train"
+val_dir = "/content/drive/MyDrive/11. New Data set/Dataset Hari ke-3/Validation"
+test_dir = "/content/drive/MyDrive/11. New Data set/Dataset Hari ke-3/Test"
 
 # Image size and input shape
 image_size = (224, 224)
@@ -18,7 +18,7 @@ input_shape = (224, 224, 3)
 
 # Data augmentation and preprocessing
 train_datagen = ImageDataGenerator(
-      rescale=1.0 / 255,
+    rescale=1.0 / 255,
     rotation_range=20,
     width_shift_range=0.2,
     height_shift_range=0.2,
@@ -106,15 +106,27 @@ model.compile(
 model.summary()
 
 # Callbacks
-checkpoint_callback = ModelCheckpoint('/content/drive/MyDrive/Dataset Hari ke-3/100custom_cnn_with_256_model.keras', save_best_only=True)
+checkpoint_callback = ModelCheckpoint(
+    '/content/drive/MyDrive/11. New Data set/Dataset Hari ke-3/Rev2custom_cnn_model.keras',
+    save_best_only=True
+)
 
+early_stopping_callback = EarlyStopping(
+     monitor='val_loss',
+    patience=10,
+    min_delta=0.0001,
+    restore_best_weights=True,
+    verbose=1
+)
+
+callbacks = [checkpoint_callback, early_stopping_callback]
 
 # Train the model
 history = model.fit(
     train_generator,
     validation_data=val_generator,
     epochs=100,
-    callbacks=[checkpoint_callback]
+    callbacks=callbacks
 )
 
 # Evaluate on test set
@@ -129,12 +141,14 @@ data = {
     'Validation Accuracy': history.history['val_accuracy'],
     'Training Loss': history.history['loss'],
     'Validation Loss': history.history['val_loss'],
-
 }
 
 history_df = pd.DataFrame(data)
-history_df.to_excel("/content/drive/MyDrive/Dataset Hari ke-3/100custom_cnn_with_256_training_history.xlsx", index=False)
-print("Training history saved to 'custom_cnn_with_256_training_history.xlsx'")
+history_df.to_excel(
+    "/content/drive/MyDrive/11. New Data set/Dataset Hari ke-3/Rev2custom_cnn_training_history.xlsx",
+    index=False
+)
+print("Training history saved to 'Rev1custom_cnn_training_history.xlsx'")
 
 # Calculate average accuracy and loss
 average_training_accuracy = sum(history.history['accuracy']) / len(history.history['accuracy'])
